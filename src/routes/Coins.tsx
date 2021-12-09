@@ -1,6 +1,10 @@
-import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet";
+import { useQuery } from "react-query";
 import { Link } from "react-router-dom";
+import { useSetRecoilState } from "recoil";
 import styled from "styled-components";
+import { fetchCoins } from "../api";
+import { isDarkAtom } from "../atoms";
 
 const Container = styled.div`
   padding: 0px 20px;
@@ -15,11 +19,12 @@ const Header = styled.header`
 `;
 const CoinsList = styled.ul``;
 const Coin = styled.li`
-  background-color: white;
-  color: ${(props) => props.theme.bgColor};
+  background-color: ${(props) => props.theme.cardBgColor};
+  color: ${(props) => props.theme.textColor};
   margin-bottom: 10px;
   padding: 20px;
   border-radius: 15px;
+  border: 1px solid white;
   a {
     display: flex;
     align-items: center;
@@ -48,7 +53,7 @@ const Img = styled.img`
   margin-right: 10px;
 `;
 
-interface CoinInterface {
+interface ICoin {
   id: string;
   name: string;
   symbol: string;
@@ -58,28 +63,38 @@ interface CoinInterface {
   type: string;
 }
 
-function Coins() {
-  const [coins, setCoins] = useState<CoinInterface[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    (async () => {
-      const resp = await fetch("https://api.coinpaprika.com/v1/coins");
-      const json = await resp.json();
-      setCoins(json.slice(0, 100));
-      setLoading(false);
-    })(); // 이렇게 선언하면 바로 실행됨
-  }, []);
-  console.log(coins);
+interface ICoinsProps {}
+
+function Coins({}: ICoinsProps) {
+  // react query를 사용하면 아래 코드를 축약해줌
+  const { isLoading, data } = useQuery<ICoin[]>("allCoins", fetchCoins);
+  const setDarkAtom = useSetRecoilState(isDarkAtom);
+  const toggleDarkAtom = () => setDarkAtom((prev) => !prev);
+  // const [coins, setCoins] = useState<CoinInterface[]>([]);
+  // const [loading, setLoading] = useState(true);
+  // useEffect(() => {
+  //   (async () => {
+  //     const resp = await fetch("https://api.coinpaprika.com/v1/coins");
+  //     const json = await resp.json();
+  //     setCoins(json.slice(0, 100));
+  //     setLoading(false);
+  //   })(); // 이렇게 선언하면 바로 실행됨
+  // }, []);
+  // console.log(coins);
   return (
     <Container>
+      <Helmet>
+        <title>코인</title>
+      </Helmet>
       <Header>
         <Title>코인</Title>
+        <button onClick={toggleDarkAtom}>테마변경</button>
       </Header>
-      {loading ? (
+      {isLoading ? (
         <Loader>Loading...</Loader>
       ) : (
         <CoinsList>
-          {coins.map((coin) => (
+          {data?.slice(0, 100).map((coin) => (
             <Coin key={coin.id}>
               <Link
                 to={`/${coin.id}`}
